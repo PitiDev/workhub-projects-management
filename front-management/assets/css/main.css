@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao&family=Noto+Sans+JP&family=Noto+Sans+Thai&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Rest of your global styles */
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+  --font-lao: 'Noto Sans Lao', sans-serif;
+  --font-en: 'Arial', sans-serif;
+  --font-th: 'Sarabun', sans-serif;
+  --font-jp: 'Noto Sans JP', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+    --theme-transition-duration: 0.3s;
+    /* background-color: #121212; */
+  }
+}
+
+
+html,
+body {
+ 
+  font-family: 'Noto Sans Lao', 'Noto Sans JP', 'Noto Sans Thai', sans-serif;
+}
+
+/* Language-specific font classes */
+.font-lao {
+  font-family: 'Noto Sans Lao', 'Noto Sans JP', 'Noto Sans Thai', sans-serif;
+}
+
+/* Add smooth transition for all theme changes */
+:root {
+  --theme-transition-duration: 0.3s;
+}
+
+html.transitioning * {
+  transition-duration: var(--theme-transition-duration) !important;
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter !important;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+@layer components {
+  .input {
+    @apply w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-75 disabled:cursor-not-allowed;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-75 disabled:cursor-not-allowed transition-colors;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500;
+  }
+
+  .btn-success {
+    @apply bg-success-600 hover:bg-success-700 text-white focus:ring-success-500;
+  }
+
+  .btn-danger {
+    @apply bg-danger-600 hover:bg-danger-700 text-white focus:ring-danger-500;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 focus:ring-gray-400;
+  }
+
+  .btn-outline {
+    @apply bg-transparent border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-gray-400;
+  }
+}
+
+/* Theme toggle animation */
+.theme-toggle-icon {
+  transform-origin: center;
+}
+
+.theme-toggle-enter-active,
+.theme-toggle-leave-active {
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+}
+
+.theme-toggle-enter-from,
+.theme-toggle-leave-to {
+  opacity: 0;
+  transform: rotate(180deg) scale(0.5);
+}
+
+.theme-toggle-enter-to,
+.theme-toggle-leave-from {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
