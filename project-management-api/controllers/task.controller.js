@@ -14,6 +14,7 @@ const Attachment = require('../models/attachment.model');
 const TimeEntry = require('../models/time-entry.model');
 const logger = require('../utils/logger');
 const ActivityTrackerService = require('../services/activity-tracker.service');
+const { sendMail, generateEmailTemplate } = require('../utils/mail');
 
 
 /**
@@ -531,11 +532,22 @@ const createTask = async (req, res) => {
       ]
     });
 
-    // If task is assigned, send notification to the assignee
+    // If task is assigned, send notification to the assignee (synchronous)
     if (assignee_id && assignee_id !== userId) {
-      // In a real app, this would trigger a notification
-      // This would typically use socket.io or a notification service
-      logger.info(`Task ${task.id} assigned to user ${assignee_id}`);
+      if (createdTask.assignee && createdTask.assignee.email) {
+        const taskUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/tasks/${createdTask.id}`;
+        await sendMail({
+          to: createdTask.assignee.email,
+          subject: `You have been assigned a new task: ${createdTask.title}`,
+          text: `Hello ${createdTask.assignee.first_name},\n\nYou have been assigned a new task: ${createdTask.title} in project ${createdTask.Project.name}.\n\nDescription: ${createdTask.description || 'No description.'}\n\nPlease check the project management system for more details.`,
+          html: generateEmailTemplate({
+            title: 'New Task Assigned',
+            body: `Hello <b>${createdTask.assignee.first_name}</b>,<br><br>You have been assigned a new task: <b>${createdTask.title}</b> in project <b>${createdTask.Project.name}</b>.<br><br>Description: ${createdTask.description || 'No description.'}`,
+            buttonText: 'View Task',
+            buttonUrl: taskUrl
+          })
+        });
+      }
     }
 
     res.status(201).json({
@@ -887,6 +899,16 @@ const addTaskComment = async (req, res) => {
         {
           model: Project,
           attributes: ['id', 'team_id']
+        },
+        {
+          model: User,
+          as: 'assignee',
+          attributes: ['id', 'first_name', 'last_name', 'email', 'profile_image']
+        },
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'first_name', 'last_name', 'email', 'profile_image']
         }
       ]
     });
@@ -928,15 +950,44 @@ const addTaskComment = async (req, res) => {
       ]
     });
 
-    // Notify task assignee and creator if they're not the commenter
+    // Notify task assignee and creator if they're not the commenter (synchronous)
     if (task.assignee_id && task.assignee_id !== userId) {
-      // In a real app, send notification to assignee
-      logger.info(`New comment on task ${id} for assignee ${task.assignee_id}`);
+      if (task.assignee && task.assignee.email) {
+        console.log('DEBUG: Sending comment email to assignee:', task.assignee.email, 'for task', task.id);
+        const taskUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/tasks/${task.id}`;
+        await sendMail({
+          to: task.assignee.email,
+          subject: `New comment on task: ${task.title}`,
+          text: `Hello ${task.assignee.first_name},\n\nA new comment was added to the task: ${task.title}.\n\nComment: ${content}\n\nPlease check the project management system for more details.`,
+          html: generateEmailTemplate({
+            title: 'New Comment on Task',
+            body: `Hello <b>${task.assignee.first_name}</b>,<br><br>A new comment was added to the task: <b>${task.title}</b>.<br><br>Comment: ${content}`,
+            buttonText: 'View Task',
+            buttonUrl: taskUrl
+          })
+        });
+      } else {
+        console.log('DEBUG: No assignee or assignee has no email:', task.assignee);
+      }
     }
-
     if (task.created_by !== userId && task.created_by !== task.assignee_id) {
-      // In a real app, send notification to creator
-      logger.info(`New comment on task ${id} for creator ${task.created_by}`);
+      if (task.creator && task.creator.email) {
+        console.log('DEBUG: Sending comment email to creator:', task.creator.email, 'for task', task.id);
+        const taskUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/tasks/${task.id}`;
+        await sendMail({
+          to: task.creator.email,
+          subject: `New comment on your task: ${task.title}`,
+          text: `Hello ${task.creator.first_name},\n\nA new comment was added to your task: ${task.title}.\n\nComment: ${content}\n\nPlease check the project management system for more details.`,
+          html: generateEmailTemplate({
+            title: 'New Comment on Your Task',
+            body: `Hello <b>${task.creator.first_name}</b>,<br><br>A new comment was added to your task: <b>${task.title}</b>.<br><br>Comment: ${content}`,
+            buttonText: 'View Task',
+            buttonUrl: taskUrl
+          })
+        });
+      } else {
+        console.log('DEBUG: No creator or creator has no email:', task.creator);
+      }
     }
 
     res.status(201).json({

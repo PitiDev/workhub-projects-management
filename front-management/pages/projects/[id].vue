@@ -297,9 +297,13 @@
                                                 @change="toggleTaskStatus(task)"
                                                 class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded transition-colors duration-200">
                                             <div class="ml-4">
-                                                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                                <NuxtLink
+                                                    :to="`/tasks/${task.id}`"
+                                                    class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
+                                                    style="cursor:pointer"
+                                                >
                                                     {{ task.title }}
-                                                </div>
+                                                </NuxtLink>
                                                 <div v-if="task.description"
                                                     class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
                                                     {{ task.description }}

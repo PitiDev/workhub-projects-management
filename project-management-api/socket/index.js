@@ -106,7 +106,7 @@ module.exports = (io) => {
         // Emit success to the sender
         socket.emit('comment-added', { success: true, data: commentData });
         
-        logger.info(`New comment added to task ${taskId} by user ${socket.userId}`);
+        logger.info(`New comment added 99 email:${user.email} to task ${taskId} by user ${socket.userId}`);
       } catch (error) {
         logger.error('Error adding comment via socket:', error);
         socket.emit('error', { message: 'Failed to add comment' });

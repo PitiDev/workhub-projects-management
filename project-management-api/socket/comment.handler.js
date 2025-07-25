@@ -1,6 +1,9 @@
 const Comment = require('../models/comment.model');
 const User = require('../models/user.model');
 const logger = require('../utils/logger');
+const Task = require('../models/task.model');
+const Project = require('../models/project.model');
+const { sendMail, generateEmailTemplate } = require('../utils/mail');
 
 /**
  * Socket handler for comment events
@@ -49,6 +52,61 @@ const commentHandler = (io) => {
           attributes: ['id', 'first_name', 'last_name', 'email', 'profile_image']
         });
 
+        // Fetch the task with assignee and creator for email notifications
+        const task = await Task.findByPk(taskId, {
+          include: [
+            {
+              model: Project,
+              attributes: ['id', 'team_id']
+            },
+            {
+              model: User,
+              as: 'assignee',
+              attributes: ['id', 'first_name', 'last_name', 'email', 'profile_image']
+            },
+            {
+              model: User,
+              as: 'creator',
+              attributes: ['id', 'first_name', 'last_name', 'email', 'profile_image']
+            }
+          ]
+        });
+        console.log('SOCKET DEBUG: Task data for comment:', JSON.stringify(task, null, 2));
+
+        // Email notification logic (same as REST API)
+        if (task && task.assignee_id && task.assignee_id !== userId) {
+          if (task.assignee && task.assignee.email) {
+            const taskUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/tasks/${task.id}`;
+            await sendMail({
+              to: task.assignee.email,
+              subject: `New comment on task: ${task.title}`,
+              text: `Hello ${task.assignee.first_name},\n\nA new comment was added to the task: ${task.title}.\n\nComment: ${content}\n\nPlease check the project management system for more details.`,
+              html: generateEmailTemplate({
+                title: 'New Comment on Task',
+                body: `Hello <b>${task.assignee.first_name}</b>,<br><br>A new comment was added to the task: <b>${task.title}</b>.<br><br>Comment: ${content}`,
+                buttonText: 'View Task',
+                buttonUrl: taskUrl
+              })
+            });
+          }
+        }
+        if (task && task.created_by !== userId && task.created_by !== task.assignee_id) {
+          if (task.creator && task.creator.email) {
+            const taskUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/tasks/${task.id}`;
+            await sendMail({
+              to: task.creator.email,
+              subject: `New comment on your task: ${task.title}`,
+              text: `Hello ${task.creator.first_name},\n\nA new comment was added to your task: ${task.title}.\n\nComment: ${content}\n\nPlease check the project management system for more details.`,
+              html: generateEmailTemplate({
+                title: 'New Comment on Your Task',
+                body: `Hello <b>${task.creator.first_name}</b>,<br><br>A new comment was added to your task: <b>${task.title}</b>.<br><br>Comment: ${content}`,
+                buttonText: 'View Task',
+                buttonUrl: taskUrl
+              })
+            });
+          }
+        }
+
         // Create the response object
         const commentData = {
           ...comment.toJSON(),
@@ -61,7 +119,7 @@ const commentHandler = (io) => {
         // Emit success to the sender
         socket.emit('comment-added', { success: true, data: commentData });
         
-        logger.info(`New comment added to task ${taskId} by user ${userId}`);
+        logger.info(`New comment added email:${user.email} to task ${taskId} by user ${userId}`);
       } catch (error) {
         logger.error('Error adding comment via socket:', error);
         socket.emit('error', { message: 'Failed to add comment' });

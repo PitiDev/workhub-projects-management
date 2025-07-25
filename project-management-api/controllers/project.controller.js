@@ -7,6 +7,7 @@ const User = require('../models/user.model');
 const TaskStatus = require('../models/task-status.model');
 const Task = require('../models/task.model');
 const logger = require('../utils/logger');
+const { sendMail, generateEmailTemplate } = require('../utils/mail');
 
 /**
  * Get all projects
@@ -236,6 +237,24 @@ const createProject = async (req, res) => {
 
       return project;
     });
+
+    // After project is created, notify all team members by email (synchronous)
+    for (const member of teamMembers) {
+      if (member.User && member.User.email) {
+        const projectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/projects/${result.id}`;
+        await sendMail({
+          to: member.User.email,
+          subject: `New project created: ${result.name}`,
+          text: `Hello ${member.User.first_name},\n\nA new project has been created in your team: ${result.name}.\n\nDescription: ${result.description || 'No description.'}\n\nPlease check the project management system for more details.`,
+          html: generateEmailTemplate({
+            title: 'New Project Created',
+            body: `Hello <b>${member.User.first_name}</b>,<br><br>A new project has been created in your team: <b>${result.name}</b>.<br><br>Description: ${result.description || 'No description.'}`,
+            buttonText: 'View Project',
+            buttonUrl: projectUrl
+          })
+        });
+      }
+    }
 
     // Get the created project with associations
     const project = await Project.findByPk(result.id, {
